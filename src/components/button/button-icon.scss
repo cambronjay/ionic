@@ -3,36 +3,37 @@
 // Button Icons
 // --------------------------------------------------
 
-
-.button-icon-left ion-icon {
-  padding-right: .3em;
-
+// Icons inside of buttons with text
+@mixin button-icon {
   font-size: 1.4em;
   line-height: .67;
 
   pointer-events: none;
 }
 
-.button-icon-right ion-icon {
+[icon-left] ion-icon {
+  padding-right: .3em;
+
+  @include button-icon;
+}
+
+[icon-right] ion-icon {
   padding-left: .4em;
 
-  font-size: 1.4em;
-  line-height: .67;
-
-  pointer-events: none;
+  @include button-icon;
 }
 
 .button-icon-only {
   padding: 0;
 
   min-width: .9em;
+}
 
-  ion-icon {
-    padding: 0 .5em;
+.button-icon-only ion-icon {
+  padding: 0 .5em;
 
-    font-size: 1.8em;
-    line-height: .67;
+  font-size: 1.8em;
+  line-height: .67;
 
-    pointer-events: none;
-  }
+  pointer-events: none;
 }

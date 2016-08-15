@@ -1,8 +1,8 @@
-import { Component, ElementRef, Renderer, Attribute, Optional, Input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Attribute, ChangeDetectionStrategy, Component, ElementRef, Input, Optional, Renderer, ViewEncapsulation } from '@angular/core';
 
 import { Config } from '../../config/config';
-import { Toolbar } from '../toolbar/toolbar';
 import { isTrueProperty } from '../../util/util';
+import { Toolbar } from '../toolbar/toolbar';
 
 
 /**
@@ -50,11 +50,6 @@ export class Button {
   private _icon: string = null; // left/right/only
   private _disabled: boolean = false; // disabled
   private _init: boolean;
-
-  /**
-   * @input {string} The category of the button.
-   */
-  @Input() category: string;
 
   /**
    * @input {string} Large button.
@@ -156,6 +151,7 @@ export class Button {
   }
 
   constructor(
+    @Attribute('ion-button') ionButton: string,
     config: Config,
     private _elementRef: ElementRef,
     private _renderer: Renderer
@@ -170,17 +166,11 @@ export class Button {
       this._disabled = true;
     }
 
-    this._readAttrs(element);
-  }
-
-  /**
-   * @private
-   */
-  ngOnInit() {
-    // If the button has a role applied to it
-    if (this.category) {
-      this.setRole(this.category);
+    if (ionButton.trim().length > 0) {
+      this.setRole(ionButton);
     }
+
+    this._readAttrs(element);
   }
 
   /**
@@ -188,7 +178,6 @@ export class Button {
    */
   ngAfterContentInit() {
     this._init = true;
-    this._readIcon(this._elementRef.nativeElement);
     this._assignCss(true);
   }
 
@@ -196,7 +185,6 @@ export class Button {
    * @private
    */
   ngAfterContentChecked() {
-    this._readIcon(this._elementRef.nativeElement);
     this._assignCss(true);
   }
 
@@ -213,56 +201,7 @@ export class Button {
   setRole(val: string) {
     this._assignCss(false);
     this._role = val;
-    this._readIcon(this._elementRef.nativeElement);
     this._assignCss(true);
-  }
-
-  /**
-   * @private
-   */
-  private _readIcon(element: HTMLElement) {
-    // figure out if and where the icon lives in the button
-    let childNodes = element.childNodes;
-    if (childNodes.length > 0) {
-      childNodes = childNodes[0].childNodes;
-    }
-    let childNode: Node;
-    let nodes: number[] = [];
-    for (let i = 0, l = childNodes.length; i < l; i++) {
-      childNode = childNodes[i];
-
-      if (childNode.nodeType === 3) {
-        // text node
-        if (childNode.textContent.trim() !== '') {
-          nodes.push(TEXT);
-        }
-
-      } else if (childNode.nodeType === 1) {
-        if (childNode.nodeName === 'ION-ICON') {
-          // icon element node
-          nodes.push(ICON);
-
-        } else {
-          // element other than an <ion-icon>
-          nodes.push(TEXT);
-        }
-      }
-    }
-
-    // Remove any classes that are set already
-    this._setClass(this._icon, false);
-
-    if (nodes.length > 1) {
-      if (nodes[0] === ICON && nodes[1] === TEXT) {
-        this._icon = 'icon-left';
-
-      } else if (nodes[0] === TEXT && nodes[1] === ICON) {
-        this._icon = 'icon-right';
-      }
-
-    } else if (nodes.length === 1 && nodes[0] === ICON) {
-      this._icon = 'icon-only';
-    }
   }
 
   /**

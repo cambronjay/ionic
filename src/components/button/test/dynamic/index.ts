@@ -17,6 +17,7 @@ class E2EPage {
   myColor2: string;
   multiColor: Array<string>;
   showIf: boolean = true;
+  presetText = 'Preset Text';
 
   constructor() {
     this.reset();

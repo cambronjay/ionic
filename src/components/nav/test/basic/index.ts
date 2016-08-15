@@ -17,7 +17,7 @@ class MyCmpTest {}
       <ion-navbar>
         <ion-title>{{title}}</ion-title>
         <ion-buttons start>
-          <button ion-button><ion-icon name="star"></ion-icon></button>
+          <button ion-button icon-only><ion-icon name="star"></ion-icon></button>
         </ion-buttons>
         <ion-buttons end>
           <button ion-button>S1g</button>

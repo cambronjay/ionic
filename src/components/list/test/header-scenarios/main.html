@@ -20,49 +20,49 @@
     </ion-list-header>
 
     <ion-list-header disabled>
-      <button ion-button item-left (click)="testClick($event)">
+      <button ion-button icon-left item-left (click)="testClick($event)">
         <ion-icon name="home"></ion-icon>
         Left Icon
       </button>
       disabled left icon buttons
-      <button ion-button outline item-right (click)="testClick($event)">
+      <button ion-button icon-left outline item-right (click)="testClick($event)">
         <ion-icon name="star"></ion-icon>
         Left Icon
       </button>
     </ion-list-header>
 
     <ion-list-header>
-      <button ion-button item-left (click)="testClick($event)">
+      <button ion-button icon-right item-left (click)="testClick($event)">
         Right Icon
         <ion-icon name="home"></ion-icon>
       </button>
       right icon buttons
-      <button ion-button outline item-right (click)="testClick($event)">
+      <button ion-button icon-right outline item-right (click)="testClick($event)">
         Right Icon
         <ion-icon name="star"></ion-icon>
       </button>
     </ion-list-header>
 
     <ion-list-header>
-      <button ion-button clear item-left default (click)="testClick($event)">
+      <button ion-button icon-only clear item-left default (click)="testClick($event)">
         <ion-icon name="navigate"></ion-icon>
       </button>
       icon only buttons default
-      <button ion-button clear item-right default (click)="testClick($event)">
+      <button ion-button icon-only clear item-right default (click)="testClick($event)">
         <ion-icon name="navigate"></ion-icon>
       </button>
     </ion-list-header>
 
     <ion-list-header>
       ion-list-header right icon/text button large
-      <button ion-button item-right large (click)="testClick($event)">
+      <button ion-button item-right icon-left large (click)="testClick($event)">
         <ion-icon name="refresh"></ion-icon>
         Refresh
       </button>
     </ion-list-header>
 
     <ion-list-header>
-      <button ion-button clear item-left small (click)="testClick($event)">
+      <button ion-button clear item-left icon-left small (click)="testClick($event)">
         <ion-icon name="settings"></ion-icon>
         Settings
       </button>
@@ -78,7 +78,7 @@
 
     <ion-list-header *ngFor="let data of [0,1,2,3,4]; let i = index" [class.activated]="i == 1">
       <ion-avatar item-left>
-          <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAAAAACH5BAAAAAAALAAAAAABAAEAAAICTAEAOw==">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAAAAACH5BAAAAAAALAAAAAABAAEAAAICTAEAOw==">
       </ion-avatar>
       <p>ng-for {{i}}</p>
       <ion-badge item-right>{{i + 1}}</ion-badge>
