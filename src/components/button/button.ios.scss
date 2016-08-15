@@ -200,7 +200,7 @@ $button-ios-fab-border-radius:                      50% !default;
 
   font-size: $button-ios-small-font-size;
 
-  &.button-icon-only ion-icon {
+  &[icon-only] ion-icon {
     font-size: $button-ios-small-icon-font-size;
   }
 }

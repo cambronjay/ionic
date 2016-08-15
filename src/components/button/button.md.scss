@@ -262,7 +262,7 @@ $button-md-fab-box-shadow-activated:            0 5px 15px 0 rgba(0, 0, 0, .4), 
 
   font-size: $button-md-small-font-size;
 
-  &.button-icon-only ion-icon {
+  &[icon-only] ion-icon {
     font-size: $button-md-small-icon-font-size;
   }
 }
@@ -415,7 +415,7 @@ $button-md-fab-box-shadow-activated:            0 5px 15px 0 rgba(0, 0, 0, .4), 
   }
 }
 
-.button-icon-only {
+[icon-only] {
   padding: 0;
 }
 

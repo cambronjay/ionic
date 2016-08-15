@@ -197,7 +197,7 @@ $button-wp-fab-border-radius:                             50% !default;
 
   font-size: $button-wp-small-font-size;
 
-  &.button-icon-only ion-icon {
+  &[icon-only] ion-icon {
     font-size: $button-wp-small-icon-font-size;
   }
 }
@@ -321,7 +321,7 @@ $button-wp-fab-border-radius:                             50% !default;
   border-radius: $button-wp-fab-border-radius;
 }
 
-.button-icon-only {
+[icon-only] {
   padding: 0;
 }
 

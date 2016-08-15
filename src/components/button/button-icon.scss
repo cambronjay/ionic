@@ -23,13 +23,13 @@
   @include button-icon;
 }
 
-.button-icon-only {
+[icon-only] {
   padding: 0;
 
   min-width: .9em;
 }
 
-.button-icon-only ion-icon {
+[icon-only] ion-icon {
   padding: 0 .5em;
 
   font-size: 1.8em;
