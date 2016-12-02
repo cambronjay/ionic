@@ -1,6 +1,7 @@
 import { Menu } from './menu';
 import { MenuType } from './menu-types';
 import { Platform } from '../../platform/platform';
+import { removeArrayItem } from '../../util/util';
 
 
 /**
@@ -77,11 +78,11 @@ import { Platform } from '../../platform/platform';
  *
  * ```ts
  *  toggleLeftMenu() {
- *    this.menu.toggle();
+ *    this.menuCtrl.toggle();
  *  }
  *
  *  toggleRightMenu() {
- *    this.menu.toggle('right');
+ *    this.menuCtrl.toggle('right');
  *  }
  * ```
  *
@@ -101,15 +102,15 @@ import { Platform } from '../../platform/platform';
  *
  * ```ts
  *  enableAuthenticatedMenu() {
- *    this.menu.enable(true, 'authenticated');
- *    this.menu.enable(false, 'unauthenticated');
+ *    this.menuCtrl.enable(true, 'authenticated');
+ *    this.menuCtrl.enable(false, 'unauthenticated');
  *  }
  * ```
  *
  * Note: if an app only has one menu, there is no reason to pass an `id`.
  *
  *
- * @demo /docs/v2/demos/menu/
+ * @demo /docs/v2/demos/src/menu/
  *
  * @see {@link /docs/v2/components#menus Menu Component Docs}
  * @see {@link ../Menu Menu API Docs}
@@ -120,6 +121,7 @@ export class MenuController {
 
   /**
    * Progamatically open the Menu.
+   * @param {string} [menuId]  Optionally get the menu by its id, or side.
    * @return {Promise} returns a promise when the menu is fully opened
    */
   open(menuId?: string): Promise<boolean> {
@@ -131,7 +133,6 @@ export class MenuController {
       }
       return menu.open();
     }
-
     return Promise.resolve(false);
   }
 
@@ -210,14 +211,21 @@ export class MenuController {
   }
 
   /**
-   * @return {boolean} Returns true if the menu is currently open, otherwise false.
+   * @param {string} [menuId] Optionally get the menu by its id, or side.
+   * @return {boolean} Returns true if the specified menu is currently open, otherwise false.
+   * If the menuId is not specified, it returns true if ANY menu is currenly open.
    */
   isOpen(menuId?: string): boolean {
-    let menu = this.get(menuId);
-    return menu && menu.isOpen || false;
+    if (menuId) {
+      var menu = this.get(menuId);
+      return menu && menu.isOpen || false;
+    } else {
+      return !!this.getOpen();
+    }
   }
 
   /**
+   * @param {string} [menuId]  Optionally get the menu by its id, or side.
    * @return {boolean} Returns true if the menu is currently enabled, otherwise false.
    */
   isEnabled(menuId?: string): boolean {
@@ -289,10 +297,7 @@ export class MenuController {
    * @private
    */
   unregister(menu: Menu) {
-    let index = this._menus.indexOf(menu);
-    if (index > -1) {
-      this._menus.splice(index, 1);
-    }
+    removeArrayItem(this._menus, menu);
   }
 
   /**

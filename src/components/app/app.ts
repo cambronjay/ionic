@@ -1,22 +1,20 @@
-import { Component, ComponentResolver, EventEmitter, HostBinding, Injectable, Renderer, ViewChild, ViewContainerRef } from '@angular/core';
+import { EventEmitter, Injectable, Optional } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 
+import { AppPortal, IonicApp } from './app-root';
 import { ClickBlock } from '../../util/click-block';
+import { runInDev } from '../../util/util';
 import { Config } from '../../config/config';
-import { NavController } from '../nav/nav-controller';
-import { isTabs, isNav } from '../nav/nav-controller-base';
-import { NavOptions } from '../nav/nav-interfaces';
-import { NavPortal } from '../nav/nav-portal';
+import { isNav, isTabs, NavOptions, DIRECTION_FORWARD, DIRECTION_BACK } from '../../navigation/nav-util';
+import { NavController } from '../../navigation/nav-controller';
 import { Platform } from '../../platform/platform';
+import { ViewController } from '../../navigation/view-controller';
+import { MenuController } from '../menu/menu-controller';
 
 /**
- * @private
- */
-export abstract class UserComponent {}
-
-
-/**
- * Ionic App utility service.
+ * @name App
+ * @description
+ * App is a utility class used in Ionic to get information about various aspects of an app
  */
 @Injectable()
 export class App {
@@ -25,17 +23,17 @@ export class App {
   private _title: string = '';
   private _titleSrv: Title = new Title();
   private _rootNav: NavController = null;
-  private _portal: NavPortal;
+  private _disableScrollAssist: boolean;
 
   /**
    * @private
    */
-  clickBlock: ClickBlock;
+  _clickBlock: ClickBlock;
 
   /**
    * @private
    */
-  appRoot: AppRoot;
+  _appRoot: IonicApp;
 
   /**
    * @private
@@ -67,18 +65,23 @@ export class App {
    */
   viewWillUnload: EventEmitter<any> = new EventEmitter();
 
-  /**
-   * @private
-   */
-  viewDidUnload: EventEmitter<any> = new EventEmitter();
-
   constructor(
     private _config: Config,
-    private _platform: Platform
+    private _platform: Platform,
+    @Optional() private _menuCtrl?: MenuController
   ) {
     // listen for hardware back button events
     // register this back button action with a default priority
-    _platform.registerBackButtonAction(this.navPop.bind(this));
+    _platform.registerBackButtonAction(this.goBack.bind(this));
+    this._disableScrollAssist = _config.getBoolean('disableScrollAssist', false);
+
+    runInDev(() => {
+      // During developement, navPop can be triggered by calling
+      // window.ClickBackButton();
+      if (!window['HWBackButton']) {
+        window['HWBackButton'] = this.goBack.bind(this);
+      }
+    });
   }
 
   /**
@@ -93,6 +96,14 @@ export class App {
   }
 
   /**
+   * @private
+   */
+  setElementClass(className: string, isAdd: boolean) {
+    this._appRoot.setElementClass(className, isAdd);
+  }
+
+  /**
+   * @private
    * Sets if the app is currently enabled or not, meaning if it's
    * available to accept new user commands. For example, this is set to `false`
    * while views transition, a modal slides up, an action-sheet
@@ -106,33 +117,28 @@ export class App {
   setEnabled(isEnabled: boolean, duration: number = 700) {
     this._disTime = (isEnabled ? 0 : Date.now() + duration);
 
-    if (this.clickBlock) {
+    if (this._clickBlock) {
       if (isEnabled || duration <= 32) {
         // disable the click block if it's enabled, or the duration is tiny
-        this.clickBlock.activate(false, 0);
+        this._clickBlock.activate(false, 0);
 
       } else {
         // show the click block for duration + some number
-        this.clickBlock.activate(true, duration + CLICK_BLOCK_BUFFER_IN_MILLIS);
+        this._clickBlock.activate(true, duration + CLICK_BLOCK_BUFFER_IN_MILLIS);
       }
     }
   }
 
   /**
+   * @private
    * Toggles whether an application can be scrolled
    * @param {boolean} disableScroll when set to `false`, the application's
    * scrolling is enabled. When set to `true`, scrolling is disabled.
    */
-  setScrollDisabled(disableScroll: boolean) {
-    let enabled = this._config.get('canDisableScroll', true);
-    if (!enabled) {
-      return;
+  _setDisableScroll(disableScroll: boolean) {
+    if (this._disableScrollAssist) {
+      this._appRoot._disableScroll(disableScroll);
     }
-    if (!this.appRoot) {
-      console.error('appRoot is missing, scrolling can not be enabled/disabled');
-      return;
-    }
-    this.appRoot.disableScroll = disableScroll;
   }
 
   /**
@@ -141,22 +147,34 @@ export class App {
    * @return {boolean}
    */
   isEnabled(): boolean {
-    return (this._disTime < Date.now());
+    const disTime = this._disTime;
+    if (disTime === 0) {
+      return true;
+    }
+    return (disTime < Date.now());
   }
 
   /**
    * @private
    */
   setScrolling() {
-    this._scrollTime = Date.now();
+    this._scrollTime = Date.now() + ACTIVE_SCROLLING_TIME;
   }
 
   /**
    * Boolean if the app is actively scrolling or not.
-   * @return {boolean}
+   * @return {boolean} returns true or false
    */
   isScrolling(): boolean {
-    return (this._scrollTime + 48 > Date.now());
+    const scrollTime = this._scrollTime;
+    if (scrollTime === 0) {
+      return false;
+    }
+    if (scrollTime < Date.now()) {
+      this._scrollTime = 0;
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -178,7 +196,7 @@ export class App {
   }
 
   /**
-   * retuns the root NavController
+   * @return {NavController} Retuns the root NavController
    */
   getRootNav(): NavController {
     return this._rootNav;
@@ -187,44 +205,60 @@ export class App {
   /**
    * @private
    */
-  setRootNav(nav: any) {
+  _setRootNav(nav: any) {
     this._rootNav = nav;
   }
 
   /**
    * @private
    */
-  setPortal(portal: NavPortal) {
-    this._portal = portal;
-  }
+  present(enteringView: ViewController, opts: NavOptions, appPortal?: AppPortal): Promise<any> {
+    const portal = this._appRoot._getPortal(appPortal);
 
-  /**
-   * @private
-   */
-  present(enteringView: any, opts: NavOptions = {}): Promise<any> {
-    enteringView.setNav(this._portal);
+    enteringView._setNav(portal);
 
     opts.keyboardClose = false;
-    opts.direction = 'forward';
+    opts.direction = DIRECTION_FORWARD;
 
     if (!opts.animation) {
-      opts.animation = enteringView.getTransitionName('forward');
+      opts.animation = enteringView.getTransitionName(DIRECTION_FORWARD);
     }
 
     enteringView.setLeavingOpts({
       keyboardClose: false,
-      direction: 'back',
-      animation: enteringView.getTransitionName('back'),
+      direction: DIRECTION_BACK,
+      animation: enteringView.getTransitionName(DIRECTION_BACK),
       ev: opts.ev
     });
 
-    return this._portal.insertViews(-1, [enteringView], opts);
+    return portal.insertPages(-1, [enteringView], opts);
+  }
+
+  goBack(): Promise<any> {
+    if (this._menuCtrl && this._menuCtrl.isOpen()) {
+      return this._menuCtrl.close();
+    }
+
+    let navPromise = this.navPop();
+    if (navPromise === null) {
+      // no views to go back to
+      // let's exit the app
+      if (this._config.getBoolean('navExitApp', true)) {
+        console.debug('app, goBack exitApp');
+        this._platform.exitApp();
+      }
+    }
+    return navPromise;
   }
 
   /**
    * @private
    */
   navPop(): Promise<any> {
+    if (!this._rootNav || !this.isEnabled()) {
+      return Promise.resolve();
+    }
+
     // function used to climb up all parent nav controllers
     function navPop(nav: any): Promise<any> {
       if (nav) {
@@ -256,101 +290,23 @@ export class App {
 
     // app must be enabled and there must be a
     // root nav controller for go back to work
-    if (this._rootNav && this.isEnabled()) {
+    const portal = this._appRoot._getActivePortal();
 
-      // first check if the root navigation has any overlays
-      // opened in it's portal, like alert/actionsheet/popup
-      if (this._portal && this._portal.length() > 0) {
-        // there is an overlay view in the portal
-        // let's pop this one off to go back
-        console.debug('app, goBack pop overlay');
-        return this._portal.pop();
-      }
-
-      // next get the active nav, check itself and climb up all
-      // of its parent navs until it finds a nav that can pop
-      let navPromise = navPop(this.getActiveNav());
-      if (navPromise === null) {
-        // no views to go back to
-        // let's exit the app
-        if (this._config.getBoolean('navExitApp', true)) {
-          console.debug('app, goBack exitApp');
-          this._platform.exitApp();
-        }
-      }
-
-      return navPromise;
+    // first check if the root navigation has any overlays
+    // opened in it's portal, like alert/actionsheet/popup/modals
+    if (portal) {
+      // there is an overlay view in the portal
+      // let's pop this one off to go back
+      console.debug('app, goBack pop overlay');
+      return portal.pop();
     }
 
-    return Promise.resolve();
+    // next get the active nav, check itself and climb up all
+    // of its parent navs until it finds a nav that can pop
+    return navPop(this.getActiveNav());
   }
-
-  /**
-   * @private
-   */
-  private getRegisteredComponent(cls: any): any {
-    // deprecated warning: added 2016-04-28, beta7
-    console.warn('Using app.getRegisteredComponent() to query components has been deprecated. ' +
-                 'Please use Angular\'s ViewChild annotation instead:\n\nhttp://learnangular2.com/viewChild/');
-  }
-
-  /**
-   * @private
-   */
-  private getComponent(id: string): any {
-    // deprecated warning: added 2016-04-28, beta7
-    console.warn('Using app.getComponent() to query components has been deprecated. ' +
-                 'Please use Angular\'s ViewChild annotation instead:\n\nhttp://learnangular2.com/viewChild/');
-  }
-
-  /**
-   * Get an instance of the global app injector that contains references to all of the instantiated providers
-   * @returns {Injector}
-   */
-  private getAppInjector(): any {
-    // deprecated warning: added 2016-06-27, beta10
-    console.warn('Recent Angular2 versions should no longer require App.getAppInjector()');
-  }
-}
-
-
-/**
- * @private
- */
-@Component({
-  selector: 'ion-app',
-  template: `
-    <div #anchor nav-portal></div>
-    <click-block></click-block>
-  `,
-  directives: [NavPortal, ClickBlock]
-})
-export class AppRoot {
-
-  @ViewChild('anchor', {read: ViewContainerRef}) private _viewport: ViewContainerRef;
-
-  constructor(
-    private _cmp: UserComponent,
-    private _cr: ComponentResolver,
-    private _renderer: Renderer,
-    app: App
-  ) {
-    app.appRoot = this;
-  }
-
-  ngAfterViewInit() {
-    // load the user app's root component
-    this._cr.resolveComponent(<any>this._cmp).then(componentFactory => {
-      let appEle: HTMLElement = this._renderer.createElement(null, componentFactory.selector || 'div', null);
-      appEle.setAttribute('class', 'app-root');
-
-      let componentRef = componentFactory.create(this._viewport.injector, null, appEle);
-      this._viewport.insert(componentRef.hostView, 0);
-    });
-  }
-
-  @HostBinding('class.disable-scroll') disableScroll: boolean = false;
 
 }
 
+const ACTIVE_SCROLLING_TIME = 100;
 const CLICK_BLOCK_BUFFER_IN_MILLIS = 64;
